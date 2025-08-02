@@ -18,9 +18,15 @@ import java.util.Map;
 @RequestMapping("/films")
 public class FilmController {
 
+    private long lastId = 0;
     private final Map<Long, Film> films = new HashMap<>();
 
     private static final Logger log = LoggerFactory.getLogger(FilmController.class);
+
+    private static final String ERR_MSG_FILM_NOT_FOUND = "Фильм с id=%d не найден.";
+    private static final String ERR_MSG_RELEASE_DATE_TOO_EARLY = "Дата релиза должна быть не раньше 28 декабря 1895 года.";
+
+    private static final LocalDate CINEMA_BIRTHDATE = LocalDate.parse("1895-12-28");
 
     @GetMapping
     public Collection<Film> findAll() {
@@ -38,38 +44,31 @@ public class FilmController {
 
     @PutMapping
     public Film update(@Valid @RequestBody Film newFilm) {
-        if (films.containsKey(newFilm.getId())) {
-            validateFilm(newFilm);
-            Film oldFilm = films.get(newFilm.getId());
-            oldFilm.setName(newFilm.getName());
-            oldFilm.setDescription(newFilm.getDescription());
-            oldFilm.setReleaseDate(newFilm.getReleaseDate());
-            oldFilm.setDuration(newFilm.getDuration());
-            log.info("Фильм id=" + oldFilm.getId() + " обновлен.");
-            return oldFilm;
+        if (!films.containsKey(newFilm.getId())) {
+            log.warn(ERR_MSG_FILM_NOT_FOUND.formatted(newFilm.getId()));
+            throw new NotFoundException(ERR_MSG_FILM_NOT_FOUND.formatted(newFilm.getId()));
         }
-        String errMsg = "Фильм с id=" + newFilm.getId() + " не найден.";
-        log.warn(errMsg);
-        throw new NotFoundException(errMsg);
+        validateFilm(newFilm);
+        Film oldFilm = films.get(newFilm.getId());
+        oldFilm.setName(newFilm.getName());
+        oldFilm.setDescription(newFilm.getDescription());
+        oldFilm.setReleaseDate(newFilm.getReleaseDate());
+        oldFilm.setDuration(newFilm.getDuration());
+        log.info("Фильм id=" + oldFilm.getId() + " обновлен.");
+        return oldFilm;
     }
 
     private void validateFilm(Film film) {
         if (film.getReleaseDate() != null
-                && film.getReleaseDate().isBefore(LocalDate.parse("1895-12-28"))) {
-            String errMsg = "Дата релиза должна быть не раньше 28 декабря 1895 года.";
-            log.warn("Ошибка валидации объекта Film. " + errMsg);
-            throw new ValidationException(errMsg);
+                && film.getReleaseDate().isBefore(CINEMA_BIRTHDATE)) {
+            log.warn("Ошибка валидации объекта Film. " + ERR_MSG_RELEASE_DATE_TOO_EARLY);
+            throw new ValidationException(ERR_MSG_RELEASE_DATE_TOO_EARLY);
         }
         log.trace("Валидации объекта Film прошла успешно.");
     }
 
     private long getNextId() {
-        long currentMaxId = films.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+        return ++lastId;
     }
 
 }

@@ -15,11 +15,17 @@ import java.util.*;
 @RequestMapping("/users")
 public class UserController {
 
+    private long lastId = 0;
     private final Map<Long, User> users = new HashMap<>();
     private final Set<String> emails = new HashSet<>();
     private final Set<String> logins = new HashSet<>();
 
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
+    private static final String ERR_MSG_USER_NOT_FOUND = "Пользователь с id=%d не найден.";
+    private static final String ERR_MSG_EMAIL_IN_USE = "Почта %s уже используется.";
+    private static final String ERR_MSG_LOGIN_IN_USE = "Логин %s уже используется.";
+    private static final String ERR_MSG_NO_SPACES = "Логин не должен содержать пробелы.";
 
     @GetMapping
     public Collection<User> findAll() {
@@ -43,41 +49,40 @@ public class UserController {
 
     @PutMapping
     public User update(@Valid@RequestBody User newUser) {
-        if (users.containsKey(newUser.getId())) {
-            validateUser(newUser);
-            User oldUser = users.get(newUser.getId());
-            if (!oldUser.getEmail().equals(newUser.getEmail())) {
-                emails.remove(oldUser.getEmail());
-                emails.add(newUser.getEmail());
-                oldUser.setEmail(newUser.getEmail());
-            }
-            if (!oldUser.getLogin().equals(newUser.getLogin())) {
-                logins.remove(oldUser.getLogin());
-                logins.add(newUser.getLogin());
-                oldUser.setLogin(newUser.getLogin());
-            }
-            if (newUser.getName().isEmpty() || newUser.getName().isBlank()) {
-                oldUser.setName(newUser.getLogin());
-            } else {
-                oldUser.setName(newUser.getName());
-            }
-            oldUser.setBirthday(newUser.getBirthday());
-            log.info("Пользователь id=" + oldUser.getId() + " обновлен.");
-            return oldUser;
+        if (!users.containsKey(newUser.getId())) {
+            log.warn(ERR_MSG_USER_NOT_FOUND.formatted(newUser.getId()));
+            throw new NotFoundException(ERR_MSG_USER_NOT_FOUND.formatted(newUser.getId()));
         }
-        String errMsg = "Пользователь с id=" + newUser.getId() + " не найден.";
-        log.warn(errMsg);
-        throw new NotFoundException(errMsg);
+        validateUser(newUser);
+        User oldUser = users.get(newUser.getId());
+        if (!oldUser.getEmail().equals(newUser.getEmail())) {
+            emails.remove(oldUser.getEmail());
+            emails.add(newUser.getEmail());
+            oldUser.setEmail(newUser.getEmail());
+        }
+        if (!oldUser.getLogin().equals(newUser.getLogin())) {
+            logins.remove(oldUser.getLogin());
+            logins.add(newUser.getLogin());
+            oldUser.setLogin(newUser.getLogin());
+        }
+        if (newUser.getName().isEmpty() || newUser.getName().isBlank()) {
+            oldUser.setName(newUser.getLogin());
+        } else {
+            oldUser.setName(newUser.getName());
+        }
+        oldUser.setBirthday(newUser.getBirthday());
+        log.info("Пользователь id=" + oldUser.getId() + " обновлен.");
+        return oldUser;
     }
 
     private void validateUser(User user) {
         String errMsg = null;
         if (emails.contains(user.getEmail())) {
-            errMsg = "Почта " + user.getEmail() + " уже используется.";
+            errMsg = ERR_MSG_EMAIL_IN_USE.formatted(user.getEmail());
         } else if (logins.contains(user.getLogin())) {
-            errMsg = "Логин " + user.getLogin() + " уже используется.";
+            errMsg = ERR_MSG_LOGIN_IN_USE.formatted(user.getLogin());
         } else if (user.getLogin().contains(" "))  {
-            errMsg = "Логин не должен содержать пробелы.";
+            errMsg = ERR_MSG_NO_SPACES;
         }
         if (errMsg != null) {
             log.warn("Ошибка валидации объекта User. " + errMsg);
@@ -87,12 +92,6 @@ public class UserController {
     }
 
     private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+        return ++lastId;
     }
-
 }
