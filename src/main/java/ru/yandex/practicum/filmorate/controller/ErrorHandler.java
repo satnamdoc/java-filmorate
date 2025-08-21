@@ -26,10 +26,19 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorResponse handleStorageException(final StorageException e) {
+        return new ErrorResponse(
+                String.format("Операция не может быть выполнена. Попробуйте повторить позже.")
+        );
+    }
+
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleNotFoundException(final Throwable e) {
         return new ErrorResponse(
                 String.format("Непредвиденная ошибка сервера. %s", e.getMessage())
         );
     }
+
 }

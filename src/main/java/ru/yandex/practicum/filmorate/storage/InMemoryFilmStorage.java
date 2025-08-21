@@ -9,7 +9,10 @@ import java.util.*;
 public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
 
+    private long lastId = 0;
+
     public void add(Film film) {
+        film.setId(getNextId());
         films.put(film.getId(), film);
     }
 
@@ -27,5 +30,9 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     public Collection<Film> getAll() {
         return List.copyOf(films.values());
+    }
+
+    private long getNextId() {
+        return ++lastId;
     }
 }

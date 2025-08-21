@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.ErrMsg;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
@@ -17,11 +18,8 @@ import java.util.Collection;
 @Service
 @RequiredArgsConstructor
 public class FilmService {
-
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-
-    private long lastId = 0;
 
     private static final Logger log = LoggerFactory.getLogger(FilmService.class);
 
@@ -31,7 +29,7 @@ public class FilmService {
 
     public Film findById(long id) {
         return filmStorage.get(id).orElseThrow(
-                () -> new NotFoundException("Film", String.valueOf(id))
+                () -> new NotFoundException(Film.class.getSimpleName(), String.valueOf(id))
         );
     }
 
@@ -45,7 +43,6 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
-        film.setId(getNextId());
         filmStorage.add(film);
         log.info("Фильм id=" + film.getId() + " создан.");
         return film;
@@ -54,7 +51,7 @@ public class FilmService {
     public Film update(Film newFilm) {
         validateFilm(newFilm);
         Film oldFilm = filmStorage.get(newFilm.getId()).orElseThrow(
-                () -> new NotFoundException("Film", String.valueOf(newFilm.getId()))
+                () -> new NotFoundException(Film.class.getSimpleName(), String.valueOf(newFilm.getId()))
         );
         newFilm.getLikes().addAll(oldFilm.getLikes());
         filmStorage.update(newFilm);
@@ -64,10 +61,10 @@ public class FilmService {
 
     public long like(long filmId, long userId) {
         Film film = filmStorage.get(filmId).orElseThrow(
-                () -> new NotFoundException("Film", String.valueOf(filmId))
+                () -> new NotFoundException(Film.class.getSimpleName(), String.valueOf(filmId))
         );
-        userStorage.get(userId).orElseThrow(
-                () -> new NotFoundException("User", String.valueOf(userId))
+        userStorage.getUserById(userId).orElseThrow(
+                () -> new NotFoundException(User.class.getSimpleName(), String.valueOf(userId))
         );
 
         film.getLikes().add(userId);
@@ -78,10 +75,10 @@ public class FilmService {
 
     public long unlike(long filmId, long userId) {
         Film film = filmStorage.get(filmId).orElseThrow(
-                () -> new NotFoundException("Film", String.valueOf(filmId))
+                () -> new NotFoundException(Film.class.getSimpleName(), String.valueOf(filmId))
         );
-        userStorage.get(userId).orElseThrow(
-                () -> new NotFoundException("User", String.valueOf(userId))
+        userStorage.getUserById(userId).orElseThrow(
+                () -> new NotFoundException(User.class.getSimpleName(), String.valueOf(userId))
         );
 
         film.getLikes().remove(userId);
@@ -90,7 +87,7 @@ public class FilmService {
         return film.getLikes().size();
     }
 
-    private void validateFilm(Film film) {
+    private static void validateFilm(Film film) {
         final LocalDate CINEMA_BIRTHDATE = LocalDate.parse("1895-12-28");
 
         final ErrMsg ERR_MSG_NAME_IS_BLANK = new ErrMsg(
@@ -128,9 +125,5 @@ public class FilmService {
             throw new ValidationException(errMsg.getParam(), errMsg.getMsg());
         }
         log.trace("Валидации объекта Film прошла успешно.");
-    }
-
-    private long getNextId() {
-        return ++lastId;
     }
 }

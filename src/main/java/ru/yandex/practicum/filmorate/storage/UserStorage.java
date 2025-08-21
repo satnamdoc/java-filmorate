@@ -13,11 +13,13 @@ public interface UserStorage {
 
     Optional<User> remove(long id);
 
-    Optional<User> get(long id);
+    Optional<User> getUserById(long id);
+
+    Collection<User> getUsersByIds(Collection<Long> ids);
 
     Collection<User> getAll();
 
-    boolean isEmailInUse(String email);
+    Optional<User> getUserByEmail(String email);
 
-    boolean isLoginInUse(String login);
+    Optional<User> getUserByLogin(String login);
 }
