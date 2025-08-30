@@ -76,6 +76,7 @@ public class UserService {
         return user;
     }
 
+
     public User update(User newUser) {
         validateUser(newUser);
         User oldUser = userStorage.getUserById(newUser.getId()).orElseThrow(

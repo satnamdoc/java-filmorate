@@ -70,8 +70,7 @@ public class FilmService {
         film.getLikes().add(userId);
         filmStorage.update(film);
         log.info("Пользователь id=" + userId + " поставил лайк фильму id=" + filmId + ".");
-        return film.getLikes().size();
-    }
+        return film.getLikes().size();    }
 
     public long unlike(long filmId, long userId) {
         Film film = filmStorage.get(filmId).orElseThrow(
